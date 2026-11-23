@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pynput
+pydantic
+evdev
+python-socketio[client]
+mss 
+Pillow

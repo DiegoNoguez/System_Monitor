@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Paleta más viva y contrastada */
+  --color-brand-500: #6366f1; /* Indigo */
+  --color-brand-600: #4f46e5;
+  --color-danger-500: #f43f5e; /* Rose */
+  --color-success-500: #10b981; /* Emerald */
+  --color-warning-500: #f59e0b; /* Amber */
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 transition-colors duration-300 antialiased;
+  }
+  .dark body {
+    /* Fondo oscuro profundo */
+    @apply bg-[#0B0F19] text-slate-200;
+  }
+}
