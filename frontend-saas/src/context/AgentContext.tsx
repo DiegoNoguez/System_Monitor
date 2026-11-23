@@ -22,7 +22,14 @@ export const AgentProvider = ({ children }: { children: React.ReactNode }) => {
     const saved = localStorage.getItem('monitor_agent');
     if (saved) {
       try {
-        setSelectedAgentState(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Verificar si el agente guardado tiene más de 7 días (604800000 ms)
+        const now = Date.now();
+        if (parsed.timestamp && (now - parsed.timestamp > 604800000)) {
+          localStorage.removeItem('monitor_agent');
+        } else {
+          setSelectedAgentState(parsed.agent);
+        }
       } catch (e) {
         localStorage.removeItem('monitor_agent');
       }
@@ -31,7 +38,8 @@ export const AgentProvider = ({ children }: { children: React.ReactNode }) => {
 
   const setSelectedAgent = (agent: Agent) => {
     setSelectedAgentState(agent);
-    localStorage.setItem('monitor_agent', JSON.stringify(agent));
+    // Guardamos el agente y la fecha actual
+    localStorage.setItem('monitor_agent', JSON.stringify({ agent, timestamp: Date.now() }));
   };
 
   const clearAgent = () => {
