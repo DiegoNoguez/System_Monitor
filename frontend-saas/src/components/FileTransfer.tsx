@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { UploadCloud, CheckCircle2 } from 'lucide-react';
-import { socket, AGENT_ID } from '../lib/socket';
+import { socket } from '../lib/socket';
 
-// Fíjate en el "export const" al inicio
-export const FileTransfer = () => {
+interface Props {
+  agentId: string;
+}
+
+export const FileTransfer = ({ agentId }: Props) => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -26,7 +29,7 @@ export const FileTransfer = () => {
         const isLast = offset + chunkSize >= file.size;
 
         socket.emit('file_chunk', {
-          agentId: AGENT_ID,
+          agentId,
           fileName: file.name,
           chunk: base64Chunk,
           isLast: isLast

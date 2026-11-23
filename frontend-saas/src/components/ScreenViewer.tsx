@@ -1,33 +1,34 @@
 import { useEffect, useState, useRef } from 'react';
-import { socket, AGENT_ID } from '../lib/socket';
+import { socket } from '../lib/socket';
 import { X } from 'lucide-react';
 
 interface Props {
+  agentId: string;
   onClose: () => void;
 }
 
-export const ScreenViewer = ({ onClose }: Props) => {
+export const ScreenViewer = ({ agentId, onClose }: Props) => {
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const intervalRef = useRef<number | null>(null);
 
   useEffect(() => {
-    // Escuchar la imagen que viene de Python
-    socket.on('screen_data', (data) => {
-      if (data.agentId === AGENT_ID) {
+    const handleScreenData = (data: any) => {
+      if (data.agentId === agentId) {
         setImgSrc(data.image);
       }
-    });
+    };
 
-    // Pedir una imagen cada 1.5 segundos (Loop de transmisión)
+    socket.on('screen_data', handleScreenData);
+
     intervalRef.current = window.setInterval(() => {
-      socket.emit('request_screen', { agentId: AGENT_ID });
+      socket.emit('request_screen', { agentId });
     }, 1500);
 
     return () => {
-      socket.off('screen_data');
+      socket.off('screen_data', handleScreenData);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [agentId]);
 
   return (
     <div className="bg-black rounded-2xl overflow-hidden relative border border-slate-700 shadow-2xl flex items-center justify-center min-h-[400px]">

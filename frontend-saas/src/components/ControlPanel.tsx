@@ -1,13 +1,14 @@
 import { Lock, Unlock, Power, Globe, Wifi, MonitorPlay } from 'lucide-react';
-import { socket, AGENT_ID } from '../lib/socket';
+import { socket } from '../lib/socket';
 
 interface Props {
+  agentId: string;
   onShowScreen: () => void;
 }
 
-export const ControlPanel = ({ onShowScreen }: Props) => {
+export const ControlPanel = ({ agentId, onShowScreen }: Props) => {
   const sendCommand = (command: string, payload?: any) => {
-    socket.emit('send_command', { agentId: AGENT_ID, command, payload });
+    socket.emit('send_command', { agentId, command, payload });
   };
 
   return (

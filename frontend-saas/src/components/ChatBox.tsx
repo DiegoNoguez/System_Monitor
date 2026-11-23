@@ -1,20 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { Send } from 'lucide-react';
-import { socket, AGENT_ID } from '../lib/socket';
+import { socket } from '../lib/socket';
 
-export const ChatBox = () => {
+interface Props {
+  agentId: string;
+}
+
+export const ChatBox = ({ agentId }: Props) => {
   const [messages, setMessages] = useState<{sender: string, message: string}[]>([]);
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    socket.on('receive_chat', (data) => {
-      if (data.agentId === AGENT_ID) {
+    const handleReceiveChat = (data: any) => {
+      if (data.agentId === agentId) {
         setMessages(prev => [...prev, { sender: data.sender, message: data.message }]);
       }
-    });
-    return () => { socket.off('receive_chat'); };
-  }, []);
+    };
+
+    socket.on('receive_chat', handleReceiveChat);
+    return () => { socket.off('receive_chat', handleReceiveChat); };
+  }, [agentId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -24,7 +30,7 @@ export const ChatBox = () => {
     e.preventDefault();
     if (!input.trim()) return;
     
-    socket.emit('send_chat', { agentId: AGENT_ID, message: input, sender: 'Admin' });
+    socket.emit('send_chat', { agentId, message: input, sender: 'Admin' });
     setInput('');
   };
 
