@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Query } from '@nestjs/common';
 import { AgentsService } from './agents.service';
 
 @Controller('agents')
@@ -8,6 +8,11 @@ export class AgentsController {
   @Post('register')
   register(@Body() body: { tenantCode: string; hostname: string; os: string }) {
     return this.agentsService.registerAgent(body);
+  }
+
+  @Get()
+  getAgents(@Query('tenantId') tenantId: string) {
+    return this.agentsService.getAgentsByTenant(tenantId);
   }
 
   @Get(':id/logs')

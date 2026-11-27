@@ -11,4 +11,6 @@ class RemoteControlUseCase:
     def shutdown(self) -> bool: return self.power_mgr.shutdown_pc()
     def block_web(self, url: str) -> bool: return self.net_mgr.block_web_page(url)
     def unblock_web(self, url: str) -> bool: return self.net_mgr.unblock_web_page(url)
-    def set_ping_state(self, allow: bool) -> bool: return self.net_mgr.toggle_ping(allow)
+    
+    def set_ping_state(self, allow: bool, target_ip: str = None) -> bool: 
+        return self.net_mgr.toggle_ping(allow, target_ip)

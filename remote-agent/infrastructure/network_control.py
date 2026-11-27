@@ -35,21 +35,29 @@ class OSNetworkPolicyManager(INetworkPolicyManager):
             return True
         except Exception: return False
 
-    def toggle_ping(self, allow: bool) -> bool:
-        """Bloquea el ping entrante (PC a PC)"""
+    def toggle_ping(self, allow: bool, target_ip: str = None) -> bool:
         sistema = platform.system()
         try:
-            if sistema == "Windows":
+            if sistema == "Linux":
+                subprocess.run(["sudo", "iptables", "-D", "INPUT", "-p", "icmp", "--icmp-type", "echo-request", "-j", "DROP"], capture_output=True)
+                
+                if target_ip:
+                    subprocess.run(["sudo", "iptables", "-D", "INPUT", "-s", target_ip, "-p", "icmp", "--icmp-type", "echo-request", "-j", "DROP"], capture_output=True)
+                    if not allow:
+                        subprocess.run(["sudo", "iptables", "-A", "INPUT", "-s", target_ip, "-p", "icmp", "--icmp-type", "echo-request", "-j", "DROP"], check=True)
+                else:
+                    if not allow:
+                        subprocess.run(["sudo", "iptables", "-A", "INPUT", "-p", "icmp", "--icmp-type", "echo-request", "-j", "DROP"], check=True)
+            
+            elif sistema == "Windows":
                 action = "allow" if allow else "block"
                 subprocess.run(["netsh", "advfirewall", "firewall", "delete", "rule", "name=ICMP_Block"], capture_output=True)
                 subprocess.run(["netsh", "advfirewall", "firewall", "add", "rule", "name=ICMP_Block", "protocol=icmpv4", "dir=in", f"action={action}"], check=True, capture_output=True)
-            elif sistema == "Linux":
-                # INPUT bloquea el tráfico entrante (cuando otra PC te hace ping)
-                subprocess.run(["sudo", "iptables", "-D", "INPUT", "-p", "icmp", "--icmp-type", "echo-request", "-j", "DROP"], capture_output=True)
-                if not allow:
-                    subprocess.run(["sudo", "iptables", "-A", "INPUT", "-p", "icmp", "--icmp-type", "echo-request", "-j", "DROP"], check=True, capture_output=True)
+            
             return True
-        except Exception: return False
+        except Exception as e:
+            print(f"Error cambiando estado de Ping: {e}")
+            return False
 
     def _flush_dns(self):
         if platform.system() == "Windows":

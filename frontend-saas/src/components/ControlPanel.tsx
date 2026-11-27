@@ -1,54 +1,58 @@
-import { Lock, Unlock, Power, Globe, Wifi, MonitorPlay } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Lock, Unlock, Power, Globe, Wifi, MonitorPlay, Loader2 } from 'lucide-react';
 import { socket } from '../lib/socket';
+import { PingModal } from './PingModal';
+import { WebBlockModal } from './WebBlockModal';
 
-interface Props {
-  agentId: string;
-  onShowScreen: () => void;
-}
+export const ControlPanel = ({ agentId, onShowScreen }: { agentId: string, onShowScreen: () => void }) => {
+  const [isPingOpen, setIsPingOpen] = useState(false);
+  const [isWebOpen, setIsWebOpen] = useState(false);
+  const [executing, setExecuting] = useState<string | null>(null);
 
-export const ControlPanel = ({ agentId, onShowScreen }: Props) => {
-  const sendCommand = (command: string, payload?: any) => {
-    socket.emit('send_command', { agentId, command, payload });
+  useEffect(() => {
+    socket.on('agent_response', (data) => {
+      if (data.agentId === agentId) setExecuting(null);
+    });
+  }, [agentId]);
+
+  const sendCmd = (cmd: string, payload?: any) => {
+    setExecuting(cmd);
+    socket.emit('send_command', { agentId, command: cmd, payload });
+    setTimeout(() => setExecuting(null), 5000);
   };
 
+  const btnClass = (cmd: string, hover: string) => `flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${executing === cmd ? 'opacity-50 cursor-wait' : `bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 ${hover}`}`;
+
   return (
-    <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-white">Panel de Control</h2>
-        <button 
-          onClick={onShowScreen}
-          className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-all shadow-[0_0_15px_rgba(99,102,241,0.5)] hover:shadow-[0_0_25px_rgba(99,102,241,0.7)]"
-        >
-          <MonitorPlay size={18} /> Ver Pantalla
-        </button>
+    <>
+      <div className="bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl rounded-2xl p-6 border shadow-xl">
+        <div className="flex justify-between mb-6">
+          <h2 className="text-xl font-bold dark:text-white">Panel de Control</h2>
+          <button onClick={onShowScreen} className="bg-brand-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"><MonitorPlay size={18}/> Ver Pantalla</button>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <button onClick={() => sendCmd('BLOCK_INPUT')} className={btnClass('BLOCK_INPUT', 'hover:text-red-500')}>
+            {executing === 'BLOCK_INPUT' ? <Loader2 className="animate-spin mb-2" /> : <Lock className="mb-2" />} <span>Bloquear</span>
+          </button>
+          <button onClick={() => sendCmd('UNBLOCK_INPUT')} className={btnClass('UNBLOCK_INPUT', 'hover:text-green-500')}>
+            {executing === 'UNBLOCK_INPUT' ? <Loader2 className="animate-spin mb-2" /> : <Unlock className="mb-2" />} <span>Desbloquear</span>
+          </button>
+          
+          <button onClick={() => setIsWebOpen(true)} className={btnClass('BLOCK_WEB', 'hover:text-yellow-500')}>
+             <Globe className="mb-2" /> <span>Bloquear Web</span>
+          </button>
+          
+          <button onClick={() => setIsPingOpen(true)} className={btnClass('PING', 'hover:text-orange-500')}>
+             <Wifi className="mb-2" /> <span>Config. Ping</span>
+          </button>
+          
+          <button onClick={() => sendCmd('SHUTDOWN')} className="col-span-2 bg-red-500 hover:bg-red-600 text-white p-4 rounded-xl flex justify-center items-center gap-2">
+            {executing === 'SHUTDOWN' ? <Loader2 className="animate-spin" /> : <Power />} Apagar PC
+          </button>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <button onClick={() => sendCommand('BLOCK_INPUT')} className="group flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-slate-800/50 hover:bg-danger-500/10 text-slate-600 dark:text-slate-400 hover:text-danger-500 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-danger-500/50">
-          <Lock size={28} className="mb-3 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold">Bloquear</span>
-        </button>
-
-        <button onClick={() => sendCommand('UNBLOCK_INPUT')} className="group flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-slate-800/50 hover:bg-success-500/10 text-slate-600 dark:text-slate-400 hover:text-success-500 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-success-500/50">
-          <Unlock size={28} className="mb-3 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold">Desbloquear</span>
-        </button>
-
-        <button onClick={() => sendCommand('BLOCK_WEB', { url: 'facebook.com' })} className="group flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-slate-800/50 hover:bg-warning-500/10 text-slate-600 dark:text-slate-400 hover:text-warning-500 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-warning-500/50">
-          <Globe size={28} className="mb-3 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold">Bloquear Web</span>
-        </button>
-
-        <button onClick={() => sendCommand('TOGGLE_PING', { allow: false })} className="group flex flex-col items-center justify-center p-5 bg-slate-50 dark:bg-slate-800/50 hover:bg-orange-500/10 text-slate-600 dark:text-slate-400 hover:text-orange-500 rounded-xl transition-all border border-slate-200 dark:border-slate-700 hover:border-orange-500/50">
-          <Wifi size={28} className="mb-3 group-hover:scale-110 transition-transform" />
-          <span className="text-sm font-semibold">Denegar Ping</span>
-        </button>
-
-        <button onClick={() => sendCommand('SHUTDOWN')} className="col-span-2 flex items-center justify-center p-4 mt-2 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl transition-all shadow-[0_4px_20px_rgba(244,63,94,0.4)] hover:shadow-[0_4px_30px_rgba(244,63,94,0.6)] transform hover:-translate-y-0.5">
-          <Power size={22} className="mr-3" />
-          <span className="font-bold tracking-wide">Apagar PC Remotamente</span>
-        </button>
-      </div>
-    </div>
+      <PingModal isOpen={isPingOpen} onClose={() => setIsPingOpen(false)} onConfirm={(a, ip) => { sendCmd('TOGGLE_PING', { allow: a, target_ip: ip }); setIsPingOpen(false); }} />
+      <WebBlockModal isOpen={isWebOpen} onClose={() => setIsWebOpen(false)} onConfirm={(url) => { sendCmd('BLOCK_WEB', { url }); setIsWebOpen(false); }} />
+    </>
   );
 };

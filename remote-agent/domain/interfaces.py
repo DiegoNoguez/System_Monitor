@@ -16,4 +16,4 @@ class INetworkPolicyManager(ABC):
     @abstractmethod
     def unblock_web_page(self, url: str) -> bool: pass
     @abstractmethod
-    def toggle_ping(self, allow: bool) -> bool: pass
+    def toggle_ping(self, allow: bool, target_ip: str = None) -> bool: pass

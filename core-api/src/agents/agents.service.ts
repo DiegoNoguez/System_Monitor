@@ -16,7 +16,7 @@ export class AgentsService {
 
   async registerAgent(data: { tenantCode: string; hostname: string; os: string }) {
     const tenant = await this.tenantRepo.findOne({ where: { registrationCode: data.tenantCode } });
-    if (!tenant) throw new BadRequestException('Código de empresa inválido');
+    if (!tenant) throw new BadRequestException('Codigo de empresa invalido');
 
     const newAgent = this.agentRepo.create({
       name: data.hostname,
@@ -31,5 +31,12 @@ export class AgentsService {
 
   async getAgentLogs(agentId: string) {
     return this.logRepo.find({ where: { agentId }, order: { createdAt: 'DESC' }, take: 50 });
+  }
+
+  async getAgentsByTenant(tenantId: string) {
+    return this.agentRepo.find({
+      where: { tenantId },
+      order: { name: 'ASC' },
+    });
   }
 }
