@@ -16,7 +16,7 @@ except Exception:
     PYNPUT_AVAILABLE = False
 
 class AgentWebSocketClient:
-    def __init__(self, server_url, agent_id, token, use_case, log_callback, root, admin_screen_callback):
+    def __init__(self, server_url, agent_id, token, use_case, log_callback, root, admin_screen_callback, lock_cb, unlock_cb):
         self.sio = socketio.Client(reconnection=True, reconnection_delay=3)
         self.server_url = server_url
         self.agent_id = agent_id
@@ -25,6 +25,8 @@ class AgentWebSocketClient:
         self.log_chat = log_callback
         self.root = root
         self.admin_screen_callback = admin_screen_callback
+        self.lock_cb = lock_cb
+        self.unlock_cb = unlock_cb
         
         self.is_streaming = False
         if PYNPUT_AVAILABLE: self.mouse = MouseController()
@@ -43,8 +45,12 @@ class AgentWebSocketClient:
             payload = data.get('payload', {})
             success, details = False, ""
             try:
-                if command == 'BLOCK_INPUT': success = self.use_case.block_peripherals()
-                elif command == 'UNBLOCK_INPUT': success = self.use_case.unblock_peripherals()
+                if command == 'BLOCK_INPUT': 
+                    success = self.use_case.block_peripherals()
+                    if success: self.root.after(0, self.lock_cb) 
+                elif command == 'UNBLOCK_INPUT': 
+                    success = self.use_case.unblock_peripherals()
+                    if success: self.root.after(0, self.unlock_cb) 
                 elif command == 'SHUTDOWN': success = self.use_case.shutdown()
                 elif command == 'BLOCK_WEB': success = self.use_case.block_web(payload.get('url'))
                 elif command == 'UNBLOCK_WEB': success = self.use_case.unblock_web(payload.get('url'))
@@ -105,13 +111,22 @@ class AgentWebSocketClient:
             time.sleep(0.1)
 
     def send_chat_to_web(self, message):
-        self.sio.emit('send_chat', {'agentId': self.agent_id, 'message': message, 'sender': 'Agente'})
+        if self.sio.connected:
+            self.sio.emit('send_chat', {'agentId': self.agent_id, 'message': message, 'sender': 'Agente'})
 
     def send_file_to_web(self, filepath):
+        if not self.sio.connected:
+            self.log_chat("Sistema", "Error: No hay conexión para enviar el archivo.")
+            return
+            
         filename = os.path.basename(filepath)
         with open(filepath, "rb") as f:
             chunk = base64.b64encode(f.read()).decode('utf-8')
         self.sio.emit('file_chunk_from_agent', {'agentId': self.agent_id, 'fileName': filename, 'chunk': chunk, 'isLast': True})
 
     def start(self):
-        self.sio.connect(f"{self.server_url}?role=agent&agentId={self.agent_id}&token={self.token}", transports=['websocket'])
+        self.sio.connect(
+            f"{self.server_url}?role=agent&agentId={self.agent_id}&token={self.token}", 
+            transports=['websocket'],
+            ssl_verify=False 
+        )
